@@ -23,6 +23,8 @@ namespace ANA
         public int NameLength = 17;
         public int DontRenameMods = 1;
         public int DontRenameAdmins = 1;
+        public string NotificationMessage = "Only English Characters in name, see chat!";
+        public string NotificationMessage2 = "We only allow these characters: a-z,0-9!+()[]<>/@#. _-";
 
         public List<int> RandNames = new List<int>();
         public List<string> TakenNames = new List<string>();
@@ -58,6 +60,8 @@ namespace ANA
                 Settings.AddSetting("Settings", "DontRenameMods", "1");
                 Settings.AddSetting("Settings", "NameLength", "17");
                 Settings.AddSetting("Settings", "KickInsteadOfRenaming", "0");
+                Settings.AddSetting("Settings", "NotificationMessage", "Only English Characters in name, see chat!");
+                Settings.AddSetting("Settings", "NotificationMessage2", "We only allow these characters: a-z,0-9!+()[]<>/@#. _-");
                 Settings.AddSetting("Restricted", "1", "DerpTeamNoob");
                 Settings.AddSetting("Restricted", "2", "Changeme");
                 Settings.Save();
@@ -89,6 +93,8 @@ namespace ANA
                 Settings.AddSetting("Settings", "DontRenameMods", "1");
                 Settings.AddSetting("Settings", "NameLength", "17");
                 Settings.AddSetting("Settings", "KickInsteadOfRenaming", "0");
+                Settings.AddSetting("Settings", "NotificationMessage", "Only English Characters in name, see chat!");
+                Settings.AddSetting("Settings", "NotificationMessage2", "We only allow these characters: a-z,0-9!+()[]<>/@#. _-");
                 Settings.AddSetting("Restricted", "1", "DerpTeamNoob");
                 Settings.AddSetting("Restricted", "2", "Changeme");
                 Settings.Save();
@@ -100,6 +106,8 @@ namespace ANA
                 DontRenameAdmins = int.Parse(Settings.GetSetting("Settings", "DontRenameAdmins"));
                 NameLength = int.Parse(Settings.GetSetting("Settings", "NameLength"));
                 KickInsteadOfRenaming = int.Parse(Settings.GetSetting("Settings", "KickInsteadOfRenaming"));
+                NotificationMessage = Settings.GetSetting("Settings", "NotificationMessage");
+                NotificationMessage2 = Settings.GetSetting("Settings", "NotificationMessage2");
                 string[] ls = Settings.EnumSection("Restricted");
                 foreach (var x in ls)
                 {
@@ -154,6 +162,17 @@ namespace ANA
                 return;
             }
             string name = player.Name;
+            if (KickInsteadOfRenaming == 1)
+            {
+                bool xd = Regex.IsMatch(name, @"[^a-zA-Z0-9_!+?()<>/@#,. \[\]\\-]");
+                if (xd)
+                {
+                    player.Notice("", NotificationMessage, 15f);
+                    player.MessageFrom("ANA", NotificationMessage2);
+                    player.Disconnect();
+                }
+                return;
+            }
             name = name.Substring(0, Math.Min(name.Length, NameLength));
             name = Regex.Replace(name, @"[^a-zA-Z0-9_!+?()<>/@#,. \[\]\\-]", string.Empty);
             if (name.Length <= 1 || string.Join(" ", TakenNames.ToArray()).ToLower().Contains(name.ToLower()) || string.Join(" ", Restricted.ToArray()).Contains(name.ToLower()))
