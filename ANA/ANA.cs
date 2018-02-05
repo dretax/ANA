@@ -154,13 +154,14 @@ namespace ANA
                 return;
             }
             string name = player.Name;
-            name = player.Name.Substring(0, Math.Min(name.Length, NameLength));
+            name = name.Substring(0, Math.Min(name.Length, NameLength));
             name = Regex.Replace(name, @"[^a-zA-Z0-9_!+?()<>/@#,. \[\]\\-]", string.Empty);
             if (name.Length <= 1 || string.Join(" ", TakenNames.ToArray()).ToLower().Contains(name.ToLower()) || string.Join(" ", Restricted.ToArray()).Contains(name.ToLower()))
             {
                 name = "Stranger";
                 int randnumber = GetNum();
                 name = name + randnumber;
+                RandNames.Add(randnumber);
             }
             TakenNames.Add(name);
             player.Name = name;
