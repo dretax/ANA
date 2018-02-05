@@ -165,7 +165,7 @@ namespace ANA
             if (KickInsteadOfRenaming == 1)
             {
                 bool xd = Regex.IsMatch(name, @"[^a-zA-Z0-9_!+?()<>/@#,. \[\]\\-]");
-                if (xd)
+                if (xd || string.IsNullOrEmpty(name) || name.Length <= 1)
                 {
                     player.Notice("", NotificationMessage, 15f);
                     player.MessageFrom("ANA", NotificationMessage2);
@@ -175,7 +175,7 @@ namespace ANA
             }
             name = name.Substring(0, Math.Min(name.Length, NameLength));
             name = Regex.Replace(name, @"[^a-zA-Z0-9_!+?()<>/@#,. \[\]\\-]", string.Empty);
-            if (name.Length <= 1 || string.Join(" ", TakenNames.ToArray()).ToLower().Contains(name.ToLower()) || string.Join(" ", Restricted.ToArray()).Contains(name.ToLower()))
+            if (string.IsNullOrEmpty(name) || name.Length <= 1 || string.Join(" ", TakenNames.ToArray()).ToLower().Contains(name.ToLower()) || string.Join(" ", Restricted.ToArray()).Contains(name.ToLower()))
             {
                 name = "Stranger";
                 int randnumber = GetNum();
