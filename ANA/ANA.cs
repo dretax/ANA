@@ -166,6 +166,8 @@ namespace ANA
                 return;
             }
             string name = player.Name;
+            byte[] bytes = Encoding.Default.GetBytes(name);
+            name = Encoding.UTF8.GetString(bytes);
             if (KickInsteadOfRenaming == 1)
             {
                 bool xd = Regex.IsMatch(name, RegexMatcher);
