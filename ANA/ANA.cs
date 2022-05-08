@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Fougerite;
 using Fougerite.Events;
+using Fougerite.Permissions;
 
 namespace ANA
 {
@@ -18,18 +19,18 @@ namespace ANA
     public class ANA : Fougerite.Module
     {
         public IniParser Settings;
-        public Random random = new Random();
-        public int KickInsteadOfRenaming = 0;
+        public readonly Random Randomizer = new Random();
+        public bool KickInsteadOfRenaming = false;
         public int NameLength = 17;
-        public int DontRenameMods = 1;
-        public int DontRenameAdmins = 1;
+        public bool DontRenameMods = true;
+        public bool DontRenameAdmins = true;
         public string NotificationMessage = "Only English Characters in name, see chat!";
         public string NotificationMessage2 = "We only allow these characters: a-z,0-9!+()[]<>/@#. _-";
         public string RegexMatcher = @"[^a-zA-Z0-9_!+?()<>/@#,. \[\]\\-]";
 
-        public List<int> RandNames = new List<int>();
-        public List<string> TakenNames = new List<string>();
-        public List<string> Restricted = new List<string>();
+        public readonly List<int> RandNames = new List<int>();
+        public readonly List<string> TakenNames = new List<string>();
+        public readonly List<string> Restricted = new List<string>();
 
         public override string Name
         {
@@ -48,7 +49,7 @@ namespace ANA
 
         public override Version Version
         {
-            get { return new Version("1.1"); }
+            get { return new Version("1.2"); }
         }
 
         public override void Initialize()
@@ -102,16 +103,17 @@ namespace ANA
                 Settings.AddSetting("Restricted", "2", "Changeme");
                 Settings.Save();
             }
-            Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
+           
             try
             {
-                DontRenameMods = int.Parse(Settings.GetSetting("Settings", "DontRenameMods"));
-                DontRenameAdmins = int.Parse(Settings.GetSetting("Settings", "DontRenameAdmins"));
+                Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
+                DontRenameMods = Settings.GetBoolSetting("Settings", "DontRenameMods");
+                DontRenameAdmins = Settings.GetBoolSetting("Settings", "DontRenameAdmins");
                 NameLength = int.Parse(Settings.GetSetting("Settings", "NameLength"));
-                KickInsteadOfRenaming = int.Parse(Settings.GetSetting("Settings", "KickInsteadOfRenaming"));
+                KickInsteadOfRenaming = Settings.GetBoolSetting("Settings", "KickInsteadOfRenaming");
                 NotificationMessage = Settings.GetSetting("Settings", "NotificationMessage");
                 NotificationMessage2 = Settings.GetSetting("Settings", "NotificationMessage2");
-                RegexMatcher = @Settings.GetSetting("Settings", "RegexMatcher");
+                RegexMatcher = Settings.GetSetting("Settings", "RegexMatcher");
                 string[] ls = Settings.EnumSection("Restricted");
                 foreach (var x in ls)
                 {
@@ -135,7 +137,7 @@ namespace ANA
                     return i;
                 }
             }
-            return random.Next(1001, 999999999); // Should never happen.
+            return Randomizer.Next(1001, 999999999); // Should never happen.
         }
 
         public void OnPlayerDisconnected(Fougerite.Player player)
@@ -157,18 +159,17 @@ namespace ANA
 
         public void OnPlayerConnected(Fougerite.Player player)
         {
-            if (player.Admin && DontRenameAdmins == 1)
+            if ((player.Admin && DontRenameAdmins)
+                || (player.Moderator && DontRenameMods)
+                || PermissionSystem.GetPermissionSystem().PlayerHasPermission(player, "ana.immunity"))
             {
                 return;
             }
-            if (player.Moderator && DontRenameMods == 1)
-            {
-                return;
-            }
+            
             string name = player.Name;
-            byte[] bytes = Encoding.Default.GetBytes(name);
+            byte[] bytes = Encoding.UTF8.GetBytes(name);
             name = Encoding.UTF8.GetString(bytes);
-            if (KickInsteadOfRenaming == 1)
+            if (KickInsteadOfRenaming)
             {
                 bool xd = Regex.IsMatch(name, RegexMatcher);
                 if (xd || string.IsNullOrEmpty(name) || name.Length <= 1)
@@ -179,13 +180,16 @@ namespace ANA
                 }
                 return;
             }
+            
+            
             name = name.Substring(0, Math.Min(name.Length, NameLength));
             name = Regex.Replace(name, RegexMatcher, string.Empty);
-            if (string.IsNullOrEmpty(name) || name.Length <= 1 || string.Join(" ", TakenNames.ToArray()).ToLower().Contains(name.ToLower()) || string.Join(" ", Restricted.ToArray()).Contains(name.ToLower()))
+            if (string.IsNullOrEmpty(name) || name.Length <= 1 || TakenNames.Contains(name, StringComparer.OrdinalIgnoreCase) 
+                || Restricted.Contains(name, StringComparer.OrdinalIgnoreCase))
             {
                 name = "Stranger";
                 int randnumber = GetNum();
-                name = name + randnumber;
+                name += randnumber;
                 RandNames.Add(randnumber);
             }
             TakenNames.Add(name);
@@ -196,7 +200,7 @@ namespace ANA
         {
             if (cmd == "anareload")
             {
-                if (player.Admin)
+                if (player.Admin || PermissionSystem.GetPermissionSystem().PlayerHasPermission(player, "ana.anareload"))
                 {
                     bool b = ReloadConfig();
                     player.MessageFrom("ANA", b ? "Config Reloaded!" : "Failed to reload config!");
